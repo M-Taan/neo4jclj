@@ -1,9 +1,11 @@
 (ns neo4jclj.core
   (:require [neo4jclj.parsing :refer [neo4j->clj]])
-  (:import [org.neo4j.driver GraphDatabase AuthTokens Config SessionConfig]
+  (:import [org.neo4j.driver GraphDatabase AuthTokens Config SessionConfig Session]
            [org.neo4j.driver.internal.logging ConsoleLogging]
-           [org.neo4j.driver.internal InternalDriver InternalSession InternalTransaction]
+           [org.neo4j.driver.internal InternalSession InternalTransaction]
            [java.util.logging Level]))
+
+(defrecord ^:private CustomInternalConnection [driver database])
 
 (def ^:private +log-levels+
   "For convenience, represting Java logging levels in terms of clojure keywords"
@@ -16,45 +18,45 @@
    :off Level/OFF})
 
 (defn- build-config [{:keys [logging]
+                      :or {logging :warn}
                       :as opts}]
-  (let [logging (ConsoleLogging. (get +log-levels+ logging :warn))]
+  (let [logging (ConsoleLogging. (get +log-levels+ logging))]
     (-> (Config/builder)
         (.withLogging logging)
         (.build))))
 
 (defn connect
   ([url username password]
-   (GraphDatabase/driver url (AuthTokens/basic username password)))
+   (CustomInternalConnection. (GraphDatabase/driver url (AuthTokens/basic username password)) nil))
   ([url username password options]
    (let [config (build-config options)]
-     (GraphDatabase/driver url (AuthTokens/basic username password) config))))
+     (CustomInternalConnection. (GraphDatabase/driver url (AuthTokens/basic username password) config) (:database options)))))
 
-(defn disconnect [conn]
-  (.close conn))
+(defn disconnect [^CustomInternalConnection conn]
+  (.close (:driver conn)))
 
 (defn create-session
-  ([conn]
-   (.session conn))
-  ([conn db]
-   (.session conn (SessionConfig/forDatabase db))))
+  [^CustomInternalConnection {:keys [driver database] :as conn}]
+  (if database
+    (.session driver (SessionConfig/forDatabase database))
+    (.session driver)))
 
-(defn- query-using-driver
-  [conn q-string param-list]
-  (let [session (create-session conn)]
-    (neo4j->clj (.run session q-string param-list))))
+(defmulti query (fn [obj & args] (class obj)))
 
-(defn- query-using-session
-  [session q-string param-list]
-  (neo4j->clj (.run session q-string param-list)))
+(defmethod query CustomInternalConnection
+  ([conn q-string]
+   (query conn q-string {}))
+  ([conn q-string param-list]
+   (with-open [session (create-session conn)]
+     (doall (neo4j->clj (.run session q-string param-list))))))
 
-(defn- query-using-transaction [transaction q-string param-list])
+(defmethod query InternalSession
+  ([session q-string]
+   (query session q-string {}))
+  ([session q-string param-list]
+   (neo4j->clj (.run session q-string param-list))))
 
-(defn query
-  ([obj q-string]
-   (query obj q-string {}))
-  ([obj q-string param-list]
-   (condp = (class obj)
-     InternalDriver (query-using-driver obj q-string param-list)
-     InternalSession (query-using-session obj q-string param-list)
-     InternalTransaction (query-using-transaction obj q-string param-list))))
-
+(defmethod query InternalTransaction
+  ([conn q-string]
+   (query conn q-string {}))
+  ([conn q-string param-list]))
