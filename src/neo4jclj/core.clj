@@ -5,8 +5,19 @@
            [org.neo4j.driver.internal InternalDriver InternalSession InternalTransaction]
            [java.util.logging Level]))
 
-(defn- build-config [options]
-  (let [logging (:logging options (ConsoleLogging. Level/CONFIG))]
+(def ^:private +log-levels+
+  "For convenience, represting Java logging levels in terms of clojure keywords"
+  {:all Level/ALL
+   :report Level/SEVERE
+   :warn Level/WARNING
+   :info Level/INFO
+   :debug Level/FINEST
+   :trace Level/FINE
+   :off Level/OFF})
+
+(defn- build-config [{:keys [logging]
+                      :as opts}]
+  (let [logging (ConsoleLogging. (get +log-levels+ logging :warn))]
     (-> (Config/builder)
         (.withLogging logging)
         (.build))))
