@@ -1,0 +1,21 @@
+{:paths ["src"]
+ :deps {org.clojure/clojure #:mvn{:version "1.11.1"}
+        org.neo4j.driver/neo4j-java-driver #:mvn{:version "5.7.0"}}
+ :mvn/repos
+ {"rams-nexus"
+  {:url
+   "https://www.rams.services/repos/nexus/content/repositories/"}},
+ 
+ :aliases
+ {:build {:extra-paths ["build"]
+          :deps {io.github.clojure/tools.build {:git/tag "v0.8.3" :git/sha "0d20256"}}
+          :ns-default build}
+  :install {:extra-deps {slipset/deps-deploy {:mvn/version "RELEASE"}}
+            :exec-fn deps-deploy.deps-deploy/deploy
+            :exec-args {:installer :local
+                        :artifact "target/logger.jar"}}
+  :deploy {:extra-deps {slipset/deps-deploy {:mvn/version "RELEASE"}}
+           :exec-fn deps-deploy.deps-deploy/deploy
+           :exec-args {:installer :remote
+                       :sign-releases? false
+                       :artifact "target/logger.jar"}}}}
