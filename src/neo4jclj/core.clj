@@ -1,6 +1,6 @@
 (ns neo4jclj.core
-  (:require [neo4jclj.parsing :refer [neo4j->clj]])
-  (:import [org.neo4j.driver GraphDatabase AuthTokens Config SessionConfig Session]
+  (:require [neo4jclj.parsing :refer [neo4j->clj clj->neo4j]])
+  (:import [org.neo4j.driver GraphDatabase AuthTokens Config SessionConfig]
            [org.neo4j.driver.internal.logging ConsoleLogging]
            [org.neo4j.driver.internal InternalSession InternalTransaction]
            [java.util.logging Level]))
@@ -48,13 +48,13 @@
    (query conn q-string {}))
   ([conn q-string param-list]
    (with-open [session (create-session conn)]
-     (doall (neo4j->clj (.run session q-string param-list))))))
+     (doall (neo4j->clj (.run session q-string (clj->neo4j param-list)))))))
 
 (defmethod query InternalSession
   ([session q-string]
    (query session q-string {}))
   ([session q-string param-list]
-   (neo4j->clj (.run session q-string param-list))))
+   (neo4j->clj (.run session q-string (clj->neo4j param-list)))))
 
 (defmethod query InternalTransaction
   ([conn q-string]

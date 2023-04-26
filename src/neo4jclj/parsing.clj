@@ -21,6 +21,9 @@
 
 (defmulti neo4j->clj class)
 
+(defn clj->neo4j [params]
+  (walk/stringify-keys params))
+
 (defn transform [m]
   (let [f (fn [[k v]]
             [(keyword k) (neo4j->clj v)])]
