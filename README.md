@@ -28,5 +28,5 @@ A clojure wrapper around the neo4j java library
 # Acknowledgements
 neo4jclj has been inspired by the work of the following project(s):
 
-neo4j-clj (https://github.com/gorillalabs/neo4j-clj)
+[neo4j-clj](https://github.com/gorillalabs/neo4j-clj)
 
