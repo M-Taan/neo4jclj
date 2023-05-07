@@ -55,8 +55,3 @@
    (query session q-string {}))
   ([session q-string param-list]
    (neo4j->clj (.run session q-string (clj->neo4j param-list)))))
-
-(defmethod query InternalTransaction
-  ([conn q-string]
-   (query conn q-string {}))
-  ([conn q-string param-list]))
